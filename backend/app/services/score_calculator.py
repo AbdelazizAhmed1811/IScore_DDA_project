@@ -2,9 +2,11 @@ from app.schemas import AllUserDataResponse, ScoreComponent
 from app.core.config import settings
 
 def calculate_payment_history_score(data: AllUserDataResponse) -> float:
-    if not data.payment_info or data.payment_info.total_payments == 0:
-        return 0.0  # Or handle as an error/default
-    score = (data.payment_info.on_time_payments / data.payment_info.total_payments) * 100
+    if not data.derived_payment_history or data.derived_payment_history.total_due_payments == 0:
+        return 0.0 
+    
+    history = data.derived_payment_history
+    score = (history.on_time_payments / history.total_due_payments) * 100
     return round(score, 2)
 
 def calculate_outstanding_debt_score(data: AllUserDataResponse) -> float:
@@ -30,10 +32,20 @@ def calculate_final_iscore(user_data: AllUserDataResponse):
     components = []
 
     # 1. Payment History (35%)
-    payment_raw = calculate_payment_history_score(user_data)
+    payment_raw = calculate_payment_history_score(user_data) # This function is now updated
     payment_weighted = payment_raw * 0.35
-    components.append(ScoreComponent(name="Payment History", value=user_data.payment_info.on_time_payments / user_data.payment_info.total_payments if user_data.payment_info and user_data.payment_info.total_payments else 0, raw_score=payment_raw, weight=0.35, weighted_score=payment_weighted))
+    # The 'value' for ScoreComponent might be the on_time_payments / total_due_payments ratio
+    payment_metric_value = 0
+    if user_data.derived_payment_history and user_data.derived_payment_history.total_due_payments > 0:
+        payment_metric_value = user_data.derived_payment_history.on_time_payments / user_data.derived_payment_history.total_due_payments
 
+    components.append(ScoreComponent(
+        name="Payment History",
+        value=payment_metric_value, # Ratio or raw counts, depending on what you want to show
+        raw_score=payment_raw,
+        weight=0.35,
+        weighted_score=payment_weighted
+    ))
     # 2. Outstanding Debt (30%)
     debt_raw = calculate_outstanding_debt_score(user_data)
     debt_weighted = debt_raw * 0.30
@@ -60,3 +72,4 @@ def calculate_final_iscore(user_data: AllUserDataResponse):
         "final_unscaled_score": round(final_unscaled_score, 2),
         "iscore": round(scaled_score, 2)
     }
+

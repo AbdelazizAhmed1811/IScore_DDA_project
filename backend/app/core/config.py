@@ -1,3 +1,4 @@
+import logging
 import os
 from dotenv import load_dotenv
 from pydantic_settings import BaseSettings
@@ -19,6 +20,9 @@ load_dotenv(dotenv_path=dotenv_path)
 # print(f"MONGO_URI_1 after load_dotenv: {os.getenv('MONGO_URI_1')}")
 
 class Settings(BaseSettings):
+    
+    NEON_DB_URI: str = os.getenv("NEON_DB_URI", "") # User DB
+    
     SUPABASE_URL_1: str = os.getenv("SUPABASE_URL_1", "")
     SUPABASE_KEY_1: str = os.getenv("SUPABASE_KEY_1", "")
 
